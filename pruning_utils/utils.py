@@ -17,8 +17,10 @@ class P_graph():
     def print_info(self):
         print('Total number of nodes  -> {}'.format(len(self.all_nodes)))
         print('Number of output nodes -> {}'.format(len(self.output_nodes)))
-        for i,x in enumerate(self.output_nodes.keys()):
-            print('    {}th output key ->  '.format(i), x)
+        for i, (k, v) in enumerate(zip(self.output_nodes.keys(),self.output_nodes.values())):
+            print(
+                '    {}th output key ->  '.format(i), k.ljust(20,' '), v.scope_id
+            )
 
 class P_node():
     '''
