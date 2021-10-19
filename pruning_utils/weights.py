@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-def load_weights_2_tfsess(weight_dict, mode='auto'):
+def load_weights_2_tfsess(weight_dict, sess, mode='auto'):
     '''
     {load weights to tf session}
     Input:
@@ -21,7 +21,7 @@ def load_weights_2_tfsess(weight_dict, mode='auto'):
             if mode == 'reuse':
                 raise KeyError('Variable Not Found')
             tfv = tf.get_variable(k.split(':')[0], shape=v.shape)
-            op_ = tf.assign(tfv, v)
+        op_ = tf.assign(tfv, v)
+        assign_ops.append(op_)
 
-    with tf.Session() as sess:
-        _ = sess.run(assign_ops)
+    _ = sess.run(assign_ops)
