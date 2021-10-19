@@ -41,7 +41,7 @@ def conv3D_block(x, channels, norm='GN', active_func='Relu', _block_scope='conv3
 '''SE block'''
 def _GAP(x):
     return tf.reduce_mean(x, axis=[1, 2, 3])
-@pruning_wrapper()
+@pruning_wrapper(allow_prune=True)
 def SE_block_3d(x, ratio=8, active_func='Relu', _block_scope='SE_block_3d'):
     with tf.variable_scope(None, _block_scope, ):
         w = _GAP(x)
@@ -57,7 +57,7 @@ def SE_block_3d(x, ratio=8, active_func='Relu', _block_scope='SE_block_3d'):
 
 
 '''3d upsample block'''
-@pruning_wrapper()
+@pruning_wrapper(allow_prune=True)
 def upsample3D_block(x, channels, norm='GN', active_func='Relu',
                      upsampleDims='ALL', upsampleFactor=None, _block_scope='upsample3D_block'):
     with tf.variable_scope(None, _block_scope, ):

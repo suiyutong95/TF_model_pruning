@@ -1,5 +1,6 @@
 import tensorflow as tf
 
+
 def load_weights_2_tfsess(weight_dict, sess, mode='auto'):
     '''
     {load weights to tf session}

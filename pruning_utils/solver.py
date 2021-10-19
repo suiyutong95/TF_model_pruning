@@ -75,11 +75,15 @@ def prune_solver(pnode, weights, pruning_cfg):
     # return when not need to pruning
     if not _s_cfg['allow_prune']:
         pnode.output_mask = input_mask
-        print('- SKIPED prune unable')
+        print('- SKIPED <prune unable>')
         return
 
     # pruning
     p_solvers_cfg = _s_cfg['prune_solver']
+    if not p_solvers_cfg:
+        print('- SKIPED <prune solver not implemented yet>')
+        pnode.output_mask = input_mask
+        return
     pn_method = pruning_cfg[pnode.scope_id]['method']
     if pn_method not in p_solvers_cfg.keys():
         raise KeyError('cannot found related prune method <{}>, check key or whether registered'
