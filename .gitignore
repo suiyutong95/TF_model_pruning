@@ -154,7 +154,10 @@ out
 gen
 
 #####
-./demo/ckpt
+demo/ckpt/
+dev/
 
 .DS_Store
 */.DS_Store
+
+

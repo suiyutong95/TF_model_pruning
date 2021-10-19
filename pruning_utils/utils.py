@@ -27,7 +27,7 @@ class P_node():
     {node for pruning}
     '''
 
-    def __init__(self, x, y, is_head=False, ch_op_type='scale', block_name=None):
+    def __init__(self, x, y, is_head=False, block_name=None):
         '''
         {}
         Input:
@@ -37,7 +37,7 @@ class P_node():
         self.children = []
         self.parents = None
         self.block_name = block_name
-        self.ch_op_type = 'scale'
+        self.ch_op_type = None
         self.is_head = False
         self.tensor_rebuild_out = None
         if is_head:
@@ -59,8 +59,6 @@ class P_node():
             self.graph.all_nodes.append(self)
             x.children.append(self)
             self.tensor_out = y
-        if ch_op_type == 'scale':
-            self.ch_scale = int(y.shape[-1])/int(x.tensor_out.shape[-1])
 
         self.tf_ops = None
         self.common_scope = None
@@ -73,10 +71,14 @@ class P_node():
         self.block_func_kwargs = None
         self.is_output = False
 
+        # pruning params
+        self.pruned_mask = None
+
+
     def __add__(self, other):
         with tf.variable_scope(None, 'pn_add',):
             y = self.tensor_out + other.tensor_out
-        pn = P_node([self, other], y, ch_op_type='same')
+        pn = P_node([self, other], y)
         pn.block_name = 'pn_add'
         pn.block_func_args = []
         pn.block_func_kwargs = {}
@@ -88,7 +90,7 @@ class P_node():
         pn1, pn2 = pn_list
         with tf.variable_scope(None, _block_scope,):
             y = pn1.tensor_out + pn2.tensor_out
-        pn = P_node([pn1, pn2], y, ch_op_type='same')
+        pn = P_node([pn1, pn2], y)
         pn.block_name = 'pn_add'
         pn.block_func_args = []
         pn.block_func_kwargs = {}
@@ -98,7 +100,7 @@ class P_node():
     def __mul__(self, other):
         with tf.variable_scope(None, 'pn_mul',):
             y = self.tensor_out * other.tensor_out
-        pn = P_node([self, other], y, ch_op_type='same')
+        pn = P_node([self, other], y)
         pn.block_name = 'pn_mul'
         pn.block_func_args = []
         pn.block_func_kwargs = {}
@@ -110,7 +112,7 @@ class P_node():
         pn1, pn2 = pn_list
         with tf.variable_scope(None, _block_scope,):
             y = pn1.tensor_out * pn2.tensor_out
-        pn = P_node([pn2, pn2], y, ch_op_type='same')
+        pn = P_node([pn2, pn2], y)
         pn.block_name = 'pn_mul'
         pn.block_func_args = []
         pn.block_func_kwargs = {}
@@ -155,7 +157,20 @@ func_map = {
     'pn_add': P_node.c__add__,
 }
 
-def pruning_wrapper(pruning_on=True, ch_op_type='scale'):
+solver_cfg = {
+    'pn_mul': {
+        'allow_prune': False,
+        'ch_op_type': 'element_wise',
+        'prune_solver': {},
+    },
+    'pn_add': {
+        'allow_prune': False,
+        'ch_op_type': 'element_wise',
+        'prune_solver': {},
+    },
+}
+
+def pruning_wrapper(ch_op_type='single', allow_prune=False):
     def _pruning_wrapper(block_func):
         @wraps(block_func)
         def _wrapper(x, *args, **kwargs):
@@ -169,8 +184,8 @@ def pruning_wrapper(pruning_on=True, ch_op_type='scale'):
                 y = block_func(x.tensor_out, *args, **kwargs)
             else:
                 raise TypeError('Un-known type by func <pruning_wrapper>')
-            pn = P_node(x, y, ch_op_type=ch_op_type, block_name=block_func.__name__)
-            pn.block_func_args = args
+            pn = P_node(x, y, block_name=block_func.__name__)
+            pn.block_func_args = list(args)
             pn.block_func_kwargs = kwargs
             pn.find_ops()
             return pn
@@ -178,6 +193,12 @@ def pruning_wrapper(pruning_on=True, ch_op_type='scale'):
         # register new func
         if block_func.__name__ not in func_map.keys():
             func_map[block_func.__name__] = _wrapper
+        if block_func.__name__ not in solver_cfg.keys():
+            solver_cfg[block_func.__name__] = {
+                'allow_prune': allow_prune,
+                'ch_op_type': ch_op_type,
+                'prune_solver': {},
+            }
 
         return _wrapper
 

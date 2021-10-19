@@ -1,7 +1,6 @@
 from .net_blocks_for_pruning import *
 from .tf_ops_for_pruning import *
 
-from .pruning_solver import solver_map
 
 # from .tf_ops_for_pruning import _function_name_map as ops_tofp
 # from .net_blocks_for_pruning import _function_name_map as ops_nbfp

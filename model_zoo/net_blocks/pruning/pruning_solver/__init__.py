@@ -1,3 +1,0 @@
-solver_map = {
-
-}
