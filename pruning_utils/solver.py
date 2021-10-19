@@ -1,11 +1,11 @@
 from .utils import solver_cfg
 from functools import wraps
 
-
 solver_lib = {
     'ch_op': {},
     'prune_op': {},
 }
+
 
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>@wrapper>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # register channel operation wrapper
@@ -49,10 +49,11 @@ def register_prune_op_solver(method_key, block_funcs):
 
     return _register_sovler
 
+
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # update pnodes and weights
 def prune_solver(pnode, weights, pruning_cfg):
-    print('   - pruning node {} ...'.format(pnode.scope_id).ljust(50,' '), end=' ')
+    print('   - pruning node <{}> ...'.format(pnode.scope_id).ljust(50, ' '), end=' ')
     _s_cfg = solver_cfg[pnode.block_name]
 
     _ch_op_lib = solver_lib['ch_op']
@@ -61,11 +62,11 @@ def prune_solver(pnode, weights, pruning_cfg):
     # get weights
     w_dict = {}
     for k, v in weights.items():
-        if k[:len(pnode.scope_id)] == pnode.scope_id:
+        if k[:len(pnode.scope_id)+1] == pnode.scope_id+'/':
             w_dict[k[len(pnode.scope_id)+1:]] = v
 
     # channel ops
-    if (type(pnode.parents)!=list) and (pnode.parents.is_head):
+    if (type(pnode.parents) != list) and (pnode.parents.is_head):
         input_mask = [1 for _ in range(pnode.parents.tensor_out.shape[-1])]
     else:
         chop_func = _ch_op_lib[_s_cfg['ch_op_type']]
@@ -74,7 +75,7 @@ def prune_solver(pnode, weights, pruning_cfg):
     # return when not need to pruning
     if not _s_cfg['allow_prune']:
         pnode.output_mask = input_mask
-        print('prune unable -SKIPED')
+        print('- SKIPED prune unable')
         return
 
     # pruning
@@ -92,7 +93,15 @@ def prune_solver(pnode, weights, pruning_cfg):
     for k, v in w_dict.items():
         weights[pnode.scope_id+'/'+k] = v
 
-    print('-DONE')
+    print('- DONE')
     return
 
 
+# prune entire gragh
+def prune_though_gragh(graph, weight_dict, pruning_cfg):
+    print('Start pruning though entire graph ...')
+    for pn in graph.all_nodes:
+        if pn.is_head:
+            continue
+        prune_solver(pn, weight_dict, pruning_cfg)
+    print('Prune Done!')

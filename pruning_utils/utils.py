@@ -88,6 +88,11 @@ class P_node():
     @staticmethod
     def c__add__(pn_list, _block_scope='pn_add'):
         pn1, pn2 = pn_list
+        if pn1.tensor_out.shape[-1] != pn2.tensor_out.shape[-1]:
+            raise ValueError(
+                'input dims un-match with {} and {}, check graph structure and pruning '
+                'configuration'.format(pn1.tensor_out.shape[-1],pn2.tensor_out.shape[-1])
+            )
         with tf.variable_scope(None, _block_scope,):
             y = pn1.tensor_out + pn2.tensor_out
         pn = P_node([pn1, pn2], y)
