@@ -1,12 +1,7 @@
-import sys
-
 import os
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_AUTO_MIXED_PRECISION_GRAPH_REWRITE_IGNORE_PERFORMANCE'] = '1'
-import time
-import gc
-import tracemalloc
 import SimpleITK as sitk
 import tensorflow as tf
 import numpy as np
@@ -14,11 +9,9 @@ import numpy as np
 tf.compat.vl.logging.set_verbosity(tf.compat.vl.logging.ERROR)
 from model_zoo.net_frameworks import segnet_VHA
 from model_zoo.losses import explogTVSK_loss_v3_binary as exp_v3b
-from utils.system import get_top_info, force_print
-from .NN_baseline import NN_baseline
+from utils.system import force_print
 
-from evaluation.segment_metric import evaluate_lw, evaluate_pw
-
+from evaluation.segment_metrics import evaluate_lw, evaluate_pw
 
 def Segment_Base(NN_baseline):
     def __init__(self, sess):
