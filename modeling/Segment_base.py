@@ -43,12 +43,12 @@ def Segment_Base(NN_baseline):
         self.prob_thresh = .8
 
         self.model_dir = '../../models_plaque__V2/DEBUG'
-        self.log__dir = os.path.join(self.model_dir, 'logs')
+        self.log_dir = os.path.join(self.model_dir, 'logs')
         self.ckpt_dir = os.path.join(self.model_dir, 'ckpts')
 
-        self.pretrain__seg_epoch = 15
+        self.pretrain_seg_epoch = 15
         self.reload_path = ''
-        self.restore__seg_net = False
+        self.restore_seg_net = False
 
         self.train_tfr_list = [
             ['../../data_plaque_v2/rbk_small_patch/lst_run_train_40_120_pos.tfrecord', ],
@@ -219,15 +219,15 @@ def Segment_Base(NN_baseline):
 
     def _summery_epochindex(self, ):
         with tf.variable_scope("EPEND_EVA", reuse=False):
-            self.EPEND__EVA = tf.placeholder(tf.float32, [9])
+            self.EPEND_EVA = tf.placeholder(tf.float32, [9])
             self.summary_d_pw = tf.summary.scalar("pw_dice", self.EPEND_EVA[0])
             self.summary_p_pw = tf.summary.scalar("pw_precision", self.EPEND_EVA[1])
             self.summary_r_pw = tf.summary.scalar("pw_recall", self.EPEND_EVA[2])
             self.summary_d_lw = tf.summary.scalar("lw_dice", self.EPEND_EVA[3])
-            self.summary__p_lw = tf.summary.scalar("lw_precision", self.EPEND_EVA[4])
-            self.summary_r__lw = tf.summary.scalar("lw_recall", self.EPEND_EVA[5])
+            self.summary_p_lw = tf.summary.scalar("lw_precision", self.EPEND_EVA[4])
+            self.summary_r_lw = tf.summary.scalar("lw_recall", self.EPEND_EVA[5])
             self.summary_d_pwpl = tf.summary.scalar("pwpl_dice", self.EPEND_EVA[6])
-            self.summary__P_pwpl = tf.summary.scalar("pwpl_precision", self.EPEND_EVA[7])
+            self.summary_p_pwpl = tf.summary.scalar("pwpl_precision", self.EPEND_EVA[7])
             self.summary_r_pwpl = tf.summary.scalar("pwpl_recall", self.EPEND_EVA[8])
         return [
             self.summary_d_pw, self.summary_p_pw, self.summary_r_pw,
