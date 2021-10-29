@@ -230,8 +230,8 @@ class GPUParallelBase():
         force_print('Controller:', self.controller)
         force_print('Avaliable GPUs:', devices)
         force_print(' '*4+'Batchsize:{}'.format(self.batch_size)+
-                    '= > '+'TotalGPUs: {}'.format(n_gpus)+
-                    '= > '+'batchperGPU:{}'.format(sub_batch)
+                    '= > '+'Total GPUs: {}'.format(n_gpus)+
+                    '= > '+'batch per GPU:{}'.format(sub_batch)
                     )
         self.tower_grads = []
         self._build_dataloader()

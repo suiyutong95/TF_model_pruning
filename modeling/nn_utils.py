@@ -5,7 +5,7 @@ import tensorflow as tf
 # GPU UTILS
 def average_gradients(tower_grads):
     average_grads = []
-    print('GradientsUn-availableVariables:')
+    print('Gradients Un-available Variables:')
     for grad_and_vars in zip(*tower_grads):
         grads = []
         if grad_and_vars[0][0] == None:
