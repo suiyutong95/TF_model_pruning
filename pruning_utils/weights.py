@@ -11,6 +11,7 @@ def load_weights_2_tfsess(weight_dict, sess, mode='auto'):
     exist_varialbes = {}
     assign_ops = []
     for v in tf.all_variables():
+        print(v.name)
         exist_varialbes[v.name] = v
 
     for k, v in weight_dict.items():

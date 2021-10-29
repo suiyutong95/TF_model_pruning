@@ -143,3 +143,4 @@ class NN_baseline(GPUParallelBase):
     def _regist_test_summeries(self,):
         super()._regist_test_summeries()
         self.test_summary_list += self._summery_testloss()
+

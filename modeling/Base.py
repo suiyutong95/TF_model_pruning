@@ -78,20 +78,18 @@ class GPUParallelBase():
         raise NotImplementedError
 
     def _build_dataloader(self):
-        _SAMPLE_KEYS = self.SAMPLE_KEYS if hasattr(self, 'SAMPLE_ KEYS') else []
+        _SAMPLE_KEYS = self.SAMPLE_KEYS if hasattr(self, 'SAMPLE_KEYS') else []
         _do_auglist = self.do_auglist if hasattr(self, 'do_auglist') else [False]
         force_print('>'*20, 'ALLOCATING BATCH DATA ...')
-        force_print('SAMPLE_ KEYS ->', [x for x in _SAMPLE_KEYS])
+        force_print('SAMPLE_KEYS ->', [x for x in _SAMPLE_KEYS])
 
         # train data loader
         self.train_iterator_list = []
         self.batched_data_train = {}
-        _dict = []
+        _dict = {}
         for key in _SAMPLE_KEYS:
             _dict[key] = []
         force_print('TRAIN DATA --')
-        for key in _SAMPLE_KEYS:
-            _dict[key] = []
         for i in range(self.batch_size):
             force_print('-Batch', i, 'DATA -> ', self.train_tfr_list[i%len(self.train_tfr_list)])
             iterator = self._wrapper_iterator(
@@ -109,12 +107,10 @@ class GPUParallelBase():
         # test data loader
         self.test_iterator_list = []
         self.batched_data_test = {}
-        _dict = []
+        _dict = {}
         for key in _SAMPLE_KEYS:
             _dict[key] = []
         force_print('TEST DATA --')
-        for key in _SAMPLE_KEYS:
-            _dict[key] = []
         for i in range(self.batch_size):
             force_print('-Batch', i, 'DATA -> ', self.test_tfr_list[i%len(self.test_tfr_list)])
             iterator = self._wrapper_iterator(
@@ -139,7 +135,7 @@ class GPUParallelBase():
         elif init_datasets == 'TRAIN':
             initializers = [iterator.initializer for iterator in self.train_iterator_list]
         else:
-            raise NameError("Un-defined to-be- initialize datasets' name")
+            raise NameError("Un-defined to-be-initialize datasets' name")
         self.sess.run(initializers)
         force_print(init_datasets, 'Dataset Initialized ..')
 
@@ -149,7 +145,7 @@ class GPUParallelBase():
     def _regist_test_summeries(self, ):
         self.test_summary_list = []
 
-    def _regist__epoch_summeries(self, ):
+    def _regist_epoch_summeries(self, ):
         self.epoch_summary_list = []
 
     def _build_summary_graph(self):
@@ -232,8 +228,8 @@ class GPUParallelBase():
         devices = self.devices
         n_gpus = self.n_gpus
         force_print('Controller:', self.controller)
-        force_print('AvaliableGPUs:', devices)
-        force_print(' '*4+'Batchsize:[]'.format(self.batch_size)+
+        force_print('Avaliable GPUs:', devices)
+        force_print(' '*4+'Batchsize:{}'.format(self.batch_size)+
                     '= > '+'TotalGPUs: {}'.format(n_gpus)+
                     '= > '+'batchperGPU:{}'.format(sub_batch)
                     )
@@ -245,11 +241,11 @@ class GPUParallelBase():
             self.train_loss_dict_, self.test_loss_dict_ = {}, {}
 
             for i, device_id in enumerate(devices):
-                force_print('-- ALLOCATING GRAPHS ON»>', device_id)
+                force_print('-- ALLOCATING GRAPHS ON >>', device_id)
                 name = 'tower_{}'.format(i)
                 with tf.name_scope(name):
                     with tf.device(assign_to_device(device_id, self.controller)):
-                        force_print(''*4+'-'*3+'allocatedbatch(]-[]'.format(i*sub_batch, (i+1)*sub_batch))
+                        force_print(''*4+'-'*3+'allocated batch {}-{}'.format(i*sub_batch, (i+1)*sub_batch))
                         train_net_outputs = self._build_net(
                             self._slice_batch_dict(self.batched_data_train, i*sub_batch, (i+1)*sub_batch),
                             is_training=True,
@@ -303,9 +299,9 @@ class GPUParallelBase():
         loop_tf_mem_MB = tf.contrib.memory_stats.BytesInUse()
         return {
             'run_option': run_option,
-            'run__metadata': run_metadata,
+            'run_metadata': run_metadata,
             'peak_tf_mem_MB': peak_tf_mem_MB,
-            'loop_tf__mem_MB': loop_tf_mem_MB,
+            'loop_tf_mem_MB': loop_tf_mem_MB,
         }
 
     def restore_net_for_train(self, global_step):
@@ -320,7 +316,7 @@ class GPUParallelBase():
         else:
             ckpt = tf.train.get_checkpoint_state(self.ckpt_dir)
             if ckpt and ckpt.model_checkpoint_path:
-                force_print('>'*20, 'RESTORELOCALCHECKPOINT...')
+                force_print('>'*20, 'RESTORE LOCAL CHECKPOINT...')
                 ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
                 _EMA = self.EMA if hasattr(self, 'EMA') else False
                 if _EMA:
@@ -374,7 +370,7 @@ class GPUParallelBase():
     def train(self):
         _PRETRAIN_EPOCH = self.PRETRAIN_EPOCH if hasattr(self, 'PRETRAIN_EPOCH') else 15
 
-        force_print('='*30, 'STARTTRAININGPROCESS', '='*30)
+        force_print('='*30, 'START TRAINING PROCESS', '='*30)
         self.sess.run(tf.global_variables_initializer())
         global_step = 0
         self.saver = tf.train.Saver(max_to_keep=0)

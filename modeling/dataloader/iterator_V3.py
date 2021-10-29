@@ -174,7 +174,7 @@ def make_batch_iterator_V3(tfrecord_path, is_train=True, aug_on=False, batch_siz
     if is_train and aug_on:
         # heavy aug
         dataset = dataset.map(_heavyaug_randomzoom, num_parallel_calls=_cpus)
-        dataset = dataset.map(_heavyaug_randomrotate, numparallel_calls=_cpus)
+        dataset = dataset.map(_heavyaug_randomrotate, num_parallel_calls=_cpus)
 
     # data echo
     dataset = dataset.flat_map(lambda t: tf.data.Dataset.from_tensors(t).repeat(2))

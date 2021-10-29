@@ -4,16 +4,18 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_AUTO_MIXED_PRECISION_GRAPH_REWRITE_IGNORE_PERFORMANCE'] = '1'
 import SimpleITK as sitk
 import tensorflow as tf
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 import numpy as np
 
-tf.compat.vl.logging.set_verbosity(tf.compat.vl.logging.ERROR)
+from .NN_baseline import NN_baseline
 from model_zoo.net_frameworks import segnet_VHA
 from model_zoo.losses import explogTVSK_loss_v3_binary as exp_v3b
+
 from utils.system import force_print
 
 from evaluation.segment_metrics import evaluate_lw, evaluate_pw
 
-def Segment_Base(NN_baseline):
+class Segment_Base(NN_baseline):
     def __init__(self, sess):
         self.sess = sess
         self.seg_ch = 16
@@ -85,7 +87,7 @@ def Segment_Base(NN_baseline):
 
     def seg_net(self, x, is_training=False):
         if self.segnet == 'default':
-            return segnet_VHA(x, base_channel=self.seg__ch, is_training=is_training,
+            return segnet_VHA(x, base_channel=self.seg_ch, is_training=is_training,
                               reuse=tf.AUTO_REUSE, upsample_type='resize')
         else:
             raise NameError('Un-known segnet name')
@@ -110,6 +112,7 @@ def Segment_Base(NN_baseline):
         # run session
         try:
             [
+                _,
                 seg_loss_train,
                 train_sum,
                 train_idx,
@@ -119,14 +122,14 @@ def Segment_Base(NN_baseline):
                 loop_mem_use,
             ] = self.sess.run([
                 self.optimize,
-                self.train_loss__dict['total_loss'],
+                self.train_loss_dict['total_loss'],
                 self.train_summary,
                 self.index_train,
                 self.batched_data_train,
                 self.train_output_dict['probs'],
                 self.tf_info_dict['peak_tf_mem_MB'],
                 self.tf_info_dict['loop_tf_mem_MB'],
-            ], feed_dict={self.gbl_step: global_step}, )
+            ], feed_dict={self.gbl_step: global_step},)
         except tf.errors.DataLossError:
             force_print(' [***] We got DataLossError...')
             return
@@ -138,7 +141,7 @@ def Segment_Base(NN_baseline):
         log_['train_idx'] = train_idx
         log_['seg_loss_train'] = seg_loss_train
         log_['train_idx'] = train_idx
-        log_['peak_mem__use'] = peak_mem_use
+        log_['peak_mem_use'] = peak_mem_use
         log_['loop_mem_use'] = loop_mem_use
 
     def test_step(self, log_, ):
@@ -171,7 +174,7 @@ def Segment_Base(NN_baseline):
         train_idx = log_['train_idx']
         test_idx = log_['test_idx']
         seg_loss_train = log_['seg_loss_train']
-        seg_loss_test = log_['seg__loss_test']
+        seg_loss_test = log_['seg_loss_test']
         global_step = log_['global_step']
         t_per_iter = log_['t_per_iter']
         ep = log_['epoch']
@@ -215,7 +218,7 @@ def Segment_Base(NN_baseline):
             self.summary_d_te = tf.summary.scalar("test_dice", self.index_test['dice'])
             self.summary_p_te = tf.summary.scalar("test_precision", self.index_test['precision'])
             self.summary_r_te = tf.summary.scalar("test_recall", self.index_test['recall'])
-        return [self.summary_d__te, self.summary_p_te, self.summary_r__te]
+        return [self.summary_d_te, self.summary_p_te, self.summary_r_te]
 
     def _summery_epochindex(self, ):
         with tf.variable_scope("EPEND_EVA", reuse=False):
@@ -250,7 +253,7 @@ def Segment_Base(NN_baseline):
         self.train_summary_list += self._summery_trainindex()
 
     def _regist_test_summeries(self, ):
-        super()._rеgіѕt_tеѕt_ѕummеrіеѕ()
+        super()._regist_test_summeries()
         self.test_summary_list += self._summery_testindex()
 
     def _regist_epoch_summeries(self, ):
@@ -277,7 +280,7 @@ def Segment_Base(NN_baseline):
                 db_name = 'EP{}ITER{}_{}_{}'.format(ep, ir, i, img_id)
 
                 sitk.WriteImage(sitk.GetImageFromArray(pred),
-                                os.path.join(self.model__dir, 'deg_imgs', db_name+'pred.nii.gz'))
+                                os.path.join(self.model_dir, 'deg_imgs', db_name+'pred.nii.gz'))
                 sitk.WriteImage(sitk.GetImageFromArray(img),
                                 os.path.join(self.model_dir, 'deg_imgs', db_name+'img.nii.gz'))
                 sitk.WriteImage(sitk.GetImageFromArray(lbl.аѕtуре(np.uint8)),

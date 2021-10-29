@@ -1,5 +1,6 @@
 from .utils import solver_cfg
 from functools import wraps
+import copy
 
 solver_lib = {
     'ch_op': {},
@@ -62,12 +63,13 @@ def prune_solver(pnode, weights, pruning_cfg):
     # get weights
     w_dict = {}
     for k, v in weights.items():
-        if k[:len(pnode.scope_id)+1] == pnode.scope_id+'/':
-            w_dict[k[len(pnode.scope_id)+1:]] = v
+        k_ = k[len(pnode.graph.base_scope):]
+        if k_[:len(pnode.scope_id)+1] == pnode.scope_id+'/':
+            w_dict[k_[len(pnode.scope_id)+1:]] = v
 
     # channel ops
     if (type(pnode.parents) != list) and (pnode.parents.is_head):
-        input_mask = [1 for _ in range(pnode.parents.tensor_out.shape[-1])]
+        input_mask = [1 for _ in range(pnode.parents.tensor_out_shape[-1])]
     else:
         chop_func = _ch_op_lib[_s_cfg['ch_op_type']]
         input_mask = chop_func(pnode)
@@ -95,7 +97,7 @@ def prune_solver(pnode, weights, pruning_cfg):
 
     # update weights
     for k, v in w_dict.items():
-        weights[pnode.scope_id+'/'+k] = v
+        weights[pnode.graph.base_scope+pnode.scope_id+'/'+k] = v
 
     print('- DONE')
     return
@@ -104,8 +106,10 @@ def prune_solver(pnode, weights, pruning_cfg):
 # prune entire gragh
 def prune_though_gragh(graph, weight_dict, pruning_cfg):
     print('Start pruning though entire graph ...')
+
     for pn in graph.all_nodes:
         if pn.is_head:
             continue
         prune_solver(pn, weight_dict, pruning_cfg)
+
     print('Prune Done!')

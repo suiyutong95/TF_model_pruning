@@ -1,6 +1,9 @@
 import os
+import pickle, shelve
+import copy
+
 import tensorflow as tf
-import pickle
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 from .Segment_base import Segment_Base
 from .NN_baseline import NN_baseline
@@ -8,11 +11,11 @@ from .NN_baseline import NN_baseline
 from model_zoo.losses import explogTVSK_loss_v3_binary as exp_v3b
 from model_zoo.net_frameworks.pruning import segnet_VHA_light
 
-from pruning_utils.utils import P_node
+from pruning_utils.utils import P_node, save_graph, load_graph
 from pruning_utils.rebuild_ops import rebuild_tf_graph
 
 
-class VHA_pruing_model(Segment_Base):
+class VHA_pruning_model(Segment_Base):
 
     def __init__(self, sess):
         self.sess = sess
@@ -28,7 +31,7 @@ class VHA_pruing_model(Segment_Base):
         self.sliming_loss = True
 
         self.lr = 1e-4
-        self.batch_size = 4
+        self.batch_size = 2
         self.depth = 32
         self.img_size = 192
 
@@ -47,7 +50,7 @@ class VHA_pruing_model(Segment_Base):
 
         self.prob_thresh = .8
 
-        self.model_dir = '../../models_plaque__V2/DEBUG'
+        self.model_dir = '../../models_pruning/DEBUG'
         self.log_dir = os.path.join(self.model_dir, 'logs')
         self.ckpt_dir = os.path.join(self.model_dir, 'ckpts')
 
@@ -68,7 +71,7 @@ class VHA_pruing_model(Segment_Base):
         self.do_auglist = [False, True, False, False, ]
 
         self.test_tfr_list = [
-            ['../../data_plaque_v2/rbk_small_patch/lst_run__val_40_120_pos.tfrecord', ],
+            ['../../data_plaque_v2/rbk_small_patch/lst_run_val_40_120_pos.tfrecord', ],
         ]
         self.do_auglist = [False, True, False, False, ]
 
@@ -82,18 +85,16 @@ class VHA_pruing_model(Segment_Base):
 
     def seg_net(self, x, is_training=False):
         if self.segnet == 'default':
-            return segnet_VHA_light(x, base_channel=self.seg__ch, is_training=is_training,
+            return segnet_VHA_light(x, base_channel=self.seg_ch, is_training=is_training,
                                     reuse=tf.AUTO_REUSE, upsample_type='resize')
         else:
             raise NameError('Un-known segnet name')
 
     def _save_graph(self, graph):
-        with open(os.path.join(self.graph_dir, 'graph.pkl'), 'w') as f:
-            pickle.dump(graph, f)
+        save_graph(graph,os.path.join(self.graph_dir, 'graph.pkl'))
 
     def _load_graph(self):
-        with open(os.path.join(self.graph_dir, 'graph.pkl'), ) as f:
-            graph = pickle.load(f)
+        graph = load_graph(os.path.join(self.graph_dir, 'graph.pkl'))
         return graph
 
     def _build_net(self, batched_data, is_training=False):
@@ -101,8 +102,8 @@ class VHA_pruing_model(Segment_Base):
         x = tf.expand_dims(batched_data['image'], -1)
         x.set_shape([self.sub_batch_size, self.depth, self.img_size, self.img_size, 1])
         # re-build
-        if os.path.isfile(os.path.join(self.graph_dir, 'graph.pkl')):
-            graph = _load_graph(self)
+        if 0:
+            graph = self._load_graph()
             graph_rb = rebuild_tf_graph(x, graph)
             return {
                 'probs': graph_rb.output_nodes['OP'],
@@ -115,13 +116,36 @@ class VHA_pruing_model(Segment_Base):
             with tf.variable_scope('SEG_NET', reuse=tf.AUTO_REUSE):
                 OP, V_OP, H_OP, _ = self.seg_net(x, is_training=is_training)
             #
-            self._save_graph(self, OP.graph)
+            self._save_graph(OP.graph, )
 
             return {
                 'probs': OP.tensor_out,
                 'vsl_probs': V_OP.tensor_out,
                 'hrt_probs': H_OP.tensor_out,
             }
+
+        # if is_training:
+        #     x = P_node(x, y=None, is_head=True)
+        #     with tf.variable_scope('SEG_NET', reuse=tf.AUTO_REUSE):
+        #         OP, V_OP, H_OP, _ = self.seg_net(x, is_training=is_training)
+        #     #
+        #     self._save_graph(OP.graph,)
+        #
+        #     return {
+        #         'probs': OP.tensor_out,
+        #         'vsl_probs': V_OP.tensor_out,
+        #         'hrt_probs': H_OP.tensor_out,
+        #     }
+        # else:   # for test, we do not need prune graph
+        #     with tf.variable_scope('SEG_NET', reuse=tf.AUTO_REUSE):
+        #         OP, V_OP, H_OP, _ = self.seg_net(x, is_training=is_training)
+        #
+        #     return {
+        #         'probs': OP,
+        #         'vsl_probs': V_OP,
+        #         'hrt_probs': H_OP,
+        #     }
+
 
     @NN_baseline.LossWrapper
     def _get_loss(self, outputs, batched_data):
@@ -159,3 +183,11 @@ class VHA_pruing_model(Segment_Base):
             'vsl_loss': vsl_loss,
             'hrt_loss': hrt_loss,
         }
+
+if __name__ == '__main__':
+    config = tf.ConfigProto(allow_soft_placement=False)
+    config.gpu_options.allow_growth = True
+    with tf.Session(config=config) as sess:
+        nn = VHA_pruning_model(sess)
+        nn.build()
+        nn.train()
