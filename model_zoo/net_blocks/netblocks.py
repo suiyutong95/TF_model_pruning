@@ -7,11 +7,12 @@ from tensorflow.python.ops import math_ops
 _INTEGRATE_MODE = False
 
 '''7x7x7 conv for starting network'''
-def start_77conv_block(x, channels, norm= 'GN' ,active_func='Relu') :
+def start_77conv_block(x, channels, norm='GN', active_func='Relu'):
     x = tf.layers.conv3d(x, filters=channels, strides=1, kernel_size=7, padding='SAME')
     x = _norm_func(x, norm)
     x = _active_func(x, active_type=active_func)
     return x
+
 
 # def conv3D_block (x, channels , norm='GN' ,activ_func='Relu'):
 #     '''3d conv block'''
@@ -43,40 +44,44 @@ def conv3D_block(x, channels, norm='GN', active_func='Relu'):
     x = _active_func(x, active_type=active_func)
     return x
 
+
 '''SE block'''
-def _GAP(x) :
-    return tf.reduce_mean(x,axis=[1,2,3])
-def SE_block_3d(x, ratio=8,active_func='Relu') :
+def _GAP(x):
+    return tf.reduce_mean(x, axis=[1, 2, 3])
+def SE_block_3d(x, ratio=8, active_func='Relu'):
     w = _GAP(x)
     channels = w.get_shape()[-1]
-    if ratio>channels:
+    if ratio > channels:
         ratio = channels
-    w = tf.layers . dense (w, units=channels//ratio,)
+    w = tf.layers.dense(w, units=channels//ratio, )
     w = _active_func(w, active_type=active_func)
-    w = tf.layers . dense (w, units=channels,)
-    w = tf. nn. sigmoid(w)
-    w = tf.reshape(w,[-1,1,1,1, channels])
+    w = tf.layers.dense(w, units=channels, )
+    w = tf.nn.sigmoid(w)
+    w = tf.reshape(w, [-1, 1, 1, 1, channels])
     return x*w
 
+
 '''SE-Conv block'''
-def conv3D_SE_block(x, channels, norm='GN', active_func='Relu' ):
+def conv3D_SE_block(x, channels, norm='GN', active_func='Relu'):
     x = conv3D_block(x, channels, norm=norm, active_func=active_func)
-    x = SE_block_3d(x, ratio=8, active_func=active_func )
+    x = SE_block_3d(x, ratio=8, active_func=active_func)
     return x
 
+
 '''Res block'''
-def Res_block_3d(inputs, size=3 , norm= 'BN', active_func='Relu'):
+def Res_block_3d(inputs, size=3, norm='BN', active_func='Relu'):
     channels = inputs.get_shape().as_list()[-1]
     x = tf.layers.conv3d(
-        inputs=inputs, filters=channels , kernel_size=size, strides=1, padding='SAME')
-    x = _norm_func (x, norm)
+        inputs=inputs, filters=channels, kernel_size=size, strides=1, padding='SAME')
+    x = _norm_func(x, norm)
     x = _active_func(x, active_type=active_func)
     x = tf.layers.conv3d(
-        inputs=x, filters=channels , kernel_size=size, strides=1, padding= 'SAME ')
+        inputs=x, filters=channels, kernel_size=size, strides=1, padding='SAME ')
     x = _norm_func(x, norm)
     x = inputs+x
     x = _active_func(x, active_type=active_func)
     return x
+
 
 '''ResX block '''
 def _group_conv3d(x, groups=16, channels=128, size=3):
@@ -85,11 +90,11 @@ def _group_conv3d(x, groups=16, channels=128, size=3):
     output_list = []
     for x in input_list:
         output_list.append(
-            tf.layers.conv3d(x, filters=subchannel, kernel_size=size, strides=1, padding= 'SAME')
+            tf.layers.conv3d(x, filters=subchannel, kernel_size=size, strides=1, padding='SAME')
         )
-    res = tf. concat (output_list,axis=-1)
+    res = tf.concat(output_list, axis=-1)
     return res
-def ResX_block_3d(inputs, mid_channels=None, size=3, groups=32, norm='BN' ,active_func='Relu'):
+def ResX_block_3d(inputs, mid_channels=None, size=3, groups=32, norm='BN', active_func='Relu'):
     channels = int(inputs.get_shape()[-1])
     if not mid_channels:
         mid_channels = channels//2
@@ -99,77 +104,82 @@ def ResX_block_3d(inputs, mid_channels=None, size=3, groups=32, norm='BN' ,activ
         inputs=inputs, filters=mid_channels, kernel_size=1, strides=1, padding='SAME')
     x = _norm_func(x, norm)
     x = _active_func(x, active_type=active_func)
-    x = _group_conv3d(x, groups=groups , channels=mid_channels, size=size)
-    x = _norm_func (x, norm)
-    x = tf.layers . conv3d (
-        inputs=x, filters=channels, kernel_size=1, strides=1, padding= 'SAME' )
-    x = _norm_func (x, norm)
-    x =  inputs+x
+    x = _group_conv3d(x, groups=groups, channels=mid_channels, size=size)
+    x = _norm_func(x, norm)
+    x = tf.layers.conv3d(
+        inputs=x, filters=channels, kernel_size=1, strides=1, padding='SAME')
+    x = _norm_func(x, norm)
+    x = inputs+x
     x = _active_func(x, active_type=active_func)
     return x
 
-'''SE-Res block'''
-def SE_Res_block_3d(x, ratio=16, norm='GN' ,active_func='Relu'):
-    x = Res_block_3d(x, norm=norm, active_func=active_func)
-    x = SE_block_3d(x, ratio=ratio,active_func=active_func)
-    return x
 
-'' 'SE-ResX block'' '
-def SE_ResX_block_3d(x, mid_channels=None , opt_channels=None,
-    groups=16, ratio=16,norm='GN' ,active_func='Relu'):
-    x = ResX_block_3d(
-        x, mid_channels = mid_channels , groups=groups , norm=norm, active_func=active_func)
+'''SE-Res block'''
+def SE_Res_block_3d(x, ratio=16, norm='GN', active_func='Relu'):
+    x = Res_block_3d(x, norm=norm, active_func=active_func)
     x = SE_block_3d(x, ratio=ratio, active_func=active_func)
     return x
 
+
+'' 'SE-ResX block'' '
+def SE_ResX_block_3d(x, mid_channels=None, opt_channels=None,
+                     groups=16, ratio=16, norm='GN', active_func='Relu'):
+    x = ResX_block_3d(
+        x, mid_channels=mid_channels, groups=groups, norm=norm, active_func=active_func)
+    x = SE_block_3d(x, ratio=ratio, active_func=active_func)
+    return x
+
+
 '''Pseudo 3d Conv'''
-def pseudo3d_conv_Res_block(x, channels, norm='GN',active_func='Relu'):
+def pseudo3d_conv_Res_block(x, channels, norm='GN', active_func='Relu'):
     _sub_ch = channels//2
     x_res = x
-    x_Me = tf.layers.conv3d(x, filters=_sub_ch, strides=1, kernel_size=[1,3,3] , padding='SAME')
-    x_Me = _norm_func(x_Me , norm)
-    x_Me = _active_func(x_Me , active_type=active_func)
-    x_Co = tf.layers.conv3d(x, filters=_sub_ch, strides=1, kernel_size=[3,1,3], padding='SAME')
-    x_Co =_norm_func(x_Co, norm)
-    x_Co = _active_func(x_Co ,active_type=active_func)
-    x_Tr = tf.layers.conv3d(x, filters=_sub_ch, strides=1, kernel_size=[3,3,1], padding= 'SAME')
+    x_Me = tf.layers.conv3d(x, filters=_sub_ch, strides=1, kernel_size=[1, 3, 3], padding='SAME')
+    x_Me = _norm_func(x_Me, norm)
+    x_Me = _active_func(x_Me, active_type=active_func)
+    x_Co = tf.layers.conv3d(x, filters=_sub_ch, strides=1, kernel_size=[3, 1, 3], padding='SAME')
+    x_Co = _norm_func(x_Co, norm)
+    x_Co = _active_func(x_Co, active_type=active_func)
+    x_Tr = tf.layers.conv3d(x, filters=_sub_ch, strides=1, kernel_size=[3, 3, 1], padding='SAME')
     x_Tr = _norm_func(x_Tr, norm)
-    x_Tr = _active_func(x_Tr,active_type=active_func)
+    x_Tr = _active_func(x_Tr, active_type=active_func)
     x = x_Me+x_Co+x_Tr
-    x = tf.layers. conv3d (x, filters=channels, strides=1, kernel_size=1, padding= 'SAME')
-    x = _norm_func (x, norm)
+    x = tf.layers.conv3d(x, filters=channels, strides=1, kernel_size=1, padding='SAME')
+    x = _norm_func(x, norm)
     X = x_res+x
     x = _active_func(x, active_type=active_func)
     return x
 
+
 ############################################## up samples ##############################################
 
 '''3d conv-transpose block'''
-def conv3D_T_block( x, channels, norm='GN' ,active_func= 'Relu', upsampleDims='ALL') :
-    if upsampleDims == 'ALL' :
-        x = tf.layers . conv3d_transpose( x, filters=channels, strides=2 , kernel_size=4, padding= 'SAME' )
+def conv3D_T_block(x, channels, norm='GN', active_func='Relu', upsampleDims='ALL'):
+    if upsampleDims == 'ALL':
+        x = tf.layers.conv3d_transpose(x, filters=channels, strides=2, kernel_size=4, padding='SAME')
     elif upsampleDims == 'NoDepth':
-        x = tf.layers. conv3d_transpose( x, filters=channels, strides=[1,2,2], size=4, padding= 'SAME' )
+        x = tf.layers.conv3d_transpose(x, filters=channels, strides=[1, 2, 2], size=4, padding='SAME')
     else:
-        raise NameError( 'Undifined upsample type' )
+        raise NameError('Undifined upsample type')
     x = _norm_func(x, norm)
     x = _active_func(x, active_type=active_func)
     return x
 
+
 '''3d upsample block'''
-def upsample3D_block(x, channels , norm='GN' , active_func= 'Relu',
-    upsampleDims='ALL', upsampleFactor=None):
-    if upsampleDims == 'ALL' :
-        x = _resize_3D(x, scale_factor=[2,2,2] )
-    elif upsampleDims == 'NoDepth' :
-        x = _resize_3D(x, scale_factor=[1,2,2])
+def upsample3D_block(x, channels, norm='GN', active_func='Relu',
+                     upsampleDims='ALL', upsampleFactor=None):
+    if upsampleDims == 'ALL':
+        x = _resize_3D(x, scale_factor=[2, 2, 2])
+    elif upsampleDims == 'NoDepth':
+        x = _resize_3D(x, scale_factor=[1, 2, 2])
     elif upsampleDims == 'USE_ INPUT':
         x = _resize_3D(x, scale_factor=upsampleFactor)
     else:
-        raise NameError( 'Undifined upsample type ' )
-    x = tf.layers.conv3d(x, filters=channels, strides=1, kernel_size=3, padding= 'SAME')
-    x =_norm_func(x, norm)
-    x = _active_func(x,active_type=active_func)
+        raise NameError('Undifined upsample type ')
+    x = tf.layers.conv3d(x, filters=channels, strides=1, kernel_size=3, padding='SAME')
+    x = _norm_func(x, norm)
+    x = _active_func(x, active_type=active_func)
     return x
 
 
@@ -211,6 +221,7 @@ def group_norm2(inputs, groups=32, ):
         outputs = tf.reshape(outputs, input_shape_list)
 
         return outputs
+
 
 ####################################################################################################################################################
 def _active_func(x, active_type):

@@ -5,6 +5,7 @@ import os
 import tensorflow as tf
 from modeling.VHA_pruning import VHA_pruning_model
 from model_zoo.losses import explogTVSK_loss_v3_binary as exp_v3b
+from model_zoo.losses import explogTVSK_loss_v2 as exp_v2
 
 
 class model(VHA_pruning_model):
@@ -12,18 +13,15 @@ class model(VHA_pruning_model):
         self.sess = sess
         self.seg_ch = 16
 
-        self.segnet = 'default'
-        self.loss_func_main = lambda x, y: exp_v3b(
-            x, y, weight=100, alpha=.1, beta=.9, w_c=.2, label_smooth=.99, topk=3)
-        self.loss_func_hrt = lambda x, y: exp_v3b(
-            x, y, weight=1, alpha=.1, beta=.9, w_c=.2, label_smooth=.99, topk=3)
-        self.loss_func_vsl = lambda x, y: exp_v3b(
-            x, y, weight=1, alpha=.1, beta=.9, w_c=.2, label_smooth=.99, topk=3)
+        self.segnet = 'dev'
+        self.loss_func_main = lambda x, y: exp_v2(x, y, weight=1, alpha=.1, beta=.9, w_c=.8,w_d=.2)
+        self.loss_func_hrt = lambda x, y: exp_v2(x, y, weight=1, alpha=.5, beta=.5, w_c=.2,w_d=.8)
+        self.loss_func_vsl = lambda x, y: exp_v2(x, y, weight=1, alpha=.5, beta=.5, w_c=.2,w_d=.8)
         self.sliming_loss = True
 
-        self.lr = 1e-4
-        self.batch_size = 4
-        self.depth = 32
+        self.lr = 5e-4
+        self.batch_size = 1
+        self.depth = 144
         self.img_size = 192
 
         self.epoch = 500
@@ -31,7 +29,7 @@ class model(VHA_pruning_model):
 
         self.SAVE_DEBUGIMGS = False
 
-        self.WEIGHT_DECAY = True
+        self.WEIGHT_DECAY = False
         self.DECAY_TYPE = 'WARMUP_PCD'
         self.EMA = True
 
@@ -71,7 +69,7 @@ if __name__ == '__main__':
     with tf.Session(config=config) as sess:
         nn = model(sess)
         nn.epoch = 30
-        nn.loss_func_main = lambda x, y: exp_v3b(x, y, weight=1, alpha=.1, beta=.9, w_c=.8, w_d=.2)
+        nn.loss_func_main = lambda x, y: exp_v2(x, y, weight=1, alpha=.1, beta=.9, w_c=.8,w_d=.2)
         nn.build()
         nn.train()
 

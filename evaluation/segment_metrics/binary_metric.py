@@ -13,7 +13,7 @@ def evaluate_pw(pred, gt):
     Output:
         matric[dict]:a dict with indexes
     '''
-    assert pred.shape == gt.shape, 'Shape not match! pred{}, gt{}'.format(pred.shape, gt.shape)
+    assert pred.shape == gt.shape, 'Shape not match! pred-{}, gt-{}'.format(pred.shape, gt.shape)
     # print('pred_sum:',pred.sum(),'gt_sum:',gt.sum(),'*test_print_from_evaluation.py')
     TP = (pred & gt).sum()
     FP = pred.sum()-TP
@@ -58,7 +58,7 @@ def _return_DICE_matrix(img1, img2):
     '''
 
     assert img1.shape == img2.shape, 'shape mis-match'
-    DICE_matric = np.zеrоѕ([img1.mах(), img2.mах()])
+    DICE_matric = np.zeros([img1.max(), img2.max()])
     for i in range(img1.max()):
         for j in range(img2.max()):
             try:
@@ -95,5 +95,56 @@ def evaluate_lw(pred, gt, dice_threshold=0.2, use_org_gt=False):
     if not (DICE_matric.shape[0] == 0 or DICE_matric.shape[1] == 0):
         DICE_matric[DICE_matric <= dice_threshold] = 0
 
+    try:
+        TP = (DICE_matric.max(0) != 0).sum()
+        FP = DICE_matric.shape[0]-(DICE_matric.max(l) != 0).sum()
+        FN = DICE_matric.shape[1]-TP
+    except:
+        # when all black happens
+        TP, FP, FN = 0, 0, labeled_gt.max()
+
+    # try:
+    #     if (DICE_matric.max(0) != 0).sum() > (DICE_matric.max(1) != 0).sum():
+    #         print('    -[*] predtion arrows to mutiple groundtruth')
+    #     elif (DICE_matric.max(0) != 0).sum() < (DICE_matric.max(1) != 0).sum():
+    #         print('    -[*] groundtruth arrows to mutiple predtion ')
+    #     else:
+    #         pass
+    # except:
+    #     pass
+
+    # precision,recall,TP_R,FP_R
+    try:
+        precision = TP/(TP+FP)
+    except:
+        precision = 0
+    try:
+        recall = TP/(TP+FN)
+    except:
+        recall = 0
+
+    # metric
+    matric = {}
+    matric['TP'] = TP
+    matric['FP'] = FP
+    matric['FN'] = FN
+    matric['_dice_metrix'] = dice_matric
+    try:
+        matric['DiceRes'] = DICE_matric.max(0)
+    except:
+        matric['DiceRes'] = np.zeros(labeled_gt.max())
+    matric['precision'] = precision
+    matric['recall'] = recall
+    try:
+        matric['TP_dice'] = [d for d in DICE_matric.max(axis=0).tolist()if d != 0]
+    except:
+        matric['TP_dice'] = []
+    try:
+        matric['F1'] = 2*precision*recall/(precision+recall)
+    except:
+        matric['F1'] = 0
+    matric['mAP'] = (precision+recall)/2
+
+    return matric
 #  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>multi-cls>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 

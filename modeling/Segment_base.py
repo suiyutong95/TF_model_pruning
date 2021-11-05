@@ -1,7 +1,8 @@
 import os
-
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['TF_AUTO_MIXED_PRECISION_GRAPH_REWRITE_IGNORE_PERFORMANCE'] = '1'
+import sys
+
 import SimpleITK as sitk
 import tensorflow as tf
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -283,7 +284,7 @@ class Segment_Base(NN_baseline):
                                 os.path.join(self.model_dir, 'deg_imgs', db_name+'pred.nii.gz'))
                 sitk.WriteImage(sitk.GetImageFromArray(img),
                                 os.path.join(self.model_dir, 'deg_imgs', db_name+'img.nii.gz'))
-                sitk.WriteImage(sitk.GetImageFromArray(lbl.аѕtуре(np.uint8)),
+                sitk.WriteImage(sitk.GetImageFromArray(lbl.astype(np.uint8)),
                                 os.path.join(self.model_dir, 'deg_imgs', db_name+'lbl.nii.gz'))
 
     def epoch_eva_for_train(self, global_step):
@@ -292,10 +293,10 @@ class Segment_Base(NN_baseline):
             evares_list = self._evaluate_stage()
         except FloatingPointError:
             evares_list = [0, 0, 0, 0, 0, 0, 0, 0, 0, ]
-            force_print('...failed t oevaluate', '--[FloatingPointError]occurs')
+            force_print('...failed to evaluate', '--[Floating PointError] occurs')
         except ZeroDivisionError:
             evares_list = [0, 0, 0, 0, 0, 0, 0, 0, 0, ]
-            force_print('...failed to evaluate', '--[ZeroDivisionError]occurs')
+            force_print('...failed to evaluate', '--[ZeroDivisionError] occurs')
         eva_str = self.sess.run(self.epoch_summary, feed_dict={self.EPEND_EVA: evares_list})
         self.writer.add_summary(eva_str, global_step)
         force_print('>'*20, 'DO EPOCH EVALUATION FINISHED')
@@ -305,6 +306,7 @@ class Segment_Base(NN_baseline):
         pixel_wise = [0, 0, 0]  # TP,FP,FN
         pixel_wise_patchlevel = [0, 0, 0, 0]  # TP,FP,FN
         lesion_wise = [0, 0, 0]  # TP,FP,FN
+        c = 0
         while True:
             try:
                 [test_out_seg, label] = self.sess.run([self.test_output_dict['probs'], self.batched_data_test['label']])
@@ -322,7 +324,11 @@ class Segment_Base(NN_baseline):
                     lesion_wise[0] += metric_lw['TP']
                     lesion_wise[1] += metric_lw['FP']
                     lesion_wise[2] += metric_lw['FN']
+                c+=1
+                sys.stdout.write('\r'+'|'+str(c).rjust(3,' ')+'|'+'>'*(c)+' '*(100-c))
+                sys.stdout.flush()
             except tf.errors.OutOfRangeError:
+                print()
                 pw_dice = 2*pixel_wise[0]/(2*pixel_wise[0]+pixel_wise[1]+pixel_wise[2])
                 pw_percision = pixel_wise[0]/(pixel_wise[0]+pixel_wise[1])
                 pw_recall = pixel_wise[0]/(pixel_wise[0]+pixel_wise[2])

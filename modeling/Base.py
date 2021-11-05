@@ -115,8 +115,8 @@ class GPUParallelBase():
             force_print('-Batch', i, 'DATA -> ', self.test_tfr_list[i%len(self.test_tfr_list)])
             iterator = self._wrapper_iterator(
                 self.test_tfr_list[i%len(self.test_tfr_list)],
-                batch_size=1, is_train=True,
-                aug_on=_do_auglist[i%len(_do_auglist)],
+                batch_size=1, is_train=False,
+                # aug_on=_do_auglist[i%len(_do_auglist)],
             )
             self.test_iterator_list.append(iterator)
             sample = iterator.get_next()
@@ -311,7 +311,7 @@ class GPUParallelBase():
             variables_to_restore = [t for t in trainable_vars if t.name.startswith('MT_GPU')]
             saver = tf.train.Saver(variables_to_restore)
             saver.restore(self.sess, self.reload_path)
-            force_print('-checkpoint loaded from {},\n -global step set to()'.format(self.reload_path, global_step))
+            force_print('- checkpoint loaded from {},\n - global step set to {}'.format(self.reload_path, global_step))
             force_print('>'*20, 'LOAD GLOBAL CHECKPOINT FINISHED')
         else:
             ckpt = tf.train.get_checkpoint_state(self.ckpt_dir)
@@ -328,7 +328,7 @@ class GPUParallelBase():
                     saver = tf.train.Saver()
                 saver.restore(self.sess, os.path.join(self.ckpt_dir, ckpt_name))
                 global_step = int(ckpt_name.split('-')[-1])
-                force_print(' -checkpoint restored from local model,\n -global step set to{}'.format(global_step))
+                force_print(' - checkpoint restored from local model,\n - global step set to {}'.format(global_step))
                 force_print('>'*20, 'RESTORE LOCAL CHECKPOINT FINISHED')
             else:
                 force_print('>'*20, 'NO CHECKPOINT FOUND, START NEW TRAINING')
@@ -389,7 +389,7 @@ class GPUParallelBase():
         tracemalloc.start()
         for ep in range(strt_ep, self.epoch):
             if ep > _PRETRAIN_EPOCH:
-                self.epoch_eva_fortrain(global_step)
+                self.epoch_eva_for_train(global_step)
 
             self._initialize_dataset(init_datasets='TEST')
             for ir in range(self.iters):

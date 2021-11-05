@@ -10,7 +10,7 @@ def ch_op_single(pnode):
 def ch_op_concat(pnode):
     input_mask = []
     for x in pnode.parents:
-        input_mask.extend(pnode.parents.output_mask)
+        input_mask.extend(x.output_mask)
     return input_mask
 
 

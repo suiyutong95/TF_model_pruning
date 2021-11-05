@@ -54,7 +54,7 @@ def register_prune_op_solver(method_key, block_funcs):
 # >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>  >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 # update pnodes and weights
 def prune_solver(pnode, weights, pruning_cfg):
-    print('   - pruning node <{}> ...'.format(pnode.scope_id).ljust(50, ' '), end=' ')
+    print('   - pruning node <{}> ...'.format(pnode.scope_id).ljust(70, ' '), end=' ')
     _s_cfg = solver_cfg[pnode.block_name]
 
     _ch_op_lib = solver_lib['ch_op']
@@ -91,8 +91,10 @@ def prune_solver(pnode, weights, pruning_cfg):
         raise KeyError('cannot found related prune method <{}>, check key or whether registered'
                        ' in <pruning_utils.solver_cfg>'.format(pn_method))
 
-    pnode.input_mask = input_mask
     prune_func = _pn_op_lib[p_solvers_cfg[pn_method][0]][p_solvers_cfg[pn_method][1]]
+
+    # run pruning core
+    pnode.input_mask = input_mask
     pnode.output_mask, w_dict = prune_func(pnode, pruning_cfg[pnode.scope_id], w_dict)
 
     # update weights
@@ -113,3 +115,28 @@ def prune_though_gragh(graph, weight_dict, pruning_cfg):
         prune_solver(pn, weight_dict, pruning_cfg)
 
     print('Prune Done!')
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>cfgs>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def get_complete_cfg(graph, cfg):
+    '''
+    {get complete config dict from cfg with block names}
+    cfg = {
+        'block_name':{
+            'method': ...,
+            'scale': ...,
+            },
+        ...,
+    }
+    '''
+    entire_cfg = {}
+    for x in graph.all_nodes:
+        if x.scope_id == '__HEAD__':
+            continue
+        if solver_cfg[x.block_name]['allow_prune']:
+            if x.block_name not in cfg.keys():
+                raise KeyError("block[{}]'s solver congfig not defined in cfg".format(x.block_name))
+            entire_cfg[x.scope_id] = cfg[x.block_name]
+        else:
+            pass
+
+    return entire_cfg

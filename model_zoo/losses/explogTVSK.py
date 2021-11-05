@@ -1,6 +1,36 @@
 import tensorflow as tf
 
 
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+def explogTVSK_loss_v2(gt, pred, weight=120,
+                       w_d=.8, w_c=.2, gm_d=.3, gm_c=.3, alpha=.1, beta=.9, eps=1., ):
+    '''
+    {}
+    '''
+    gt = tf.cast(gt, dtype=tf.float32)
+
+    p0 = tf.reshape(pred, (-1, 2))[..., 0]
+    g0 = tf.reshape(gt, (-1, 1))[..., 0]
+
+    g1 = tf.ones_like(g0)-g0
+    p1 = tf.ones_like(p0)-p0
+
+    # dice part
+    tvsk = (tf.reduce_sum(p0*g0)+eps)/\
+           (tf.reduce_sum(p0*g0)+alpha*tf.reduce_sum(p0*g1)+beta*tf.reduce_sum(p1*g0)+eps)
+    LD = tf.reduce_sum(tf.pow(-tf.log(tvsk), gm_d))
+
+    # ce part
+    prob = g0*p0+g1*p1
+    prob_smooth = tf.clip_by_value(prob, 1e-15, 1.0-1e-7)
+    weight_mask = g0*weight+g1*1
+    LC = tf.reduce_sum(tf.pow(-tf.log(prob_smooth), gm_c)*weight_mask) \
+         / tf.cast(tf.shape(prob_smooth)[0], dtype=tf.float32)
+
+    return LD*w_d + LC*w_c
+
+
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 def explogTVSK_loss_v3_binary(
         gt, pred, weight=120,
         w_d=.8, w_c=.2, gm_d=.3, gm_c=.3, alpha=.1, beta=.9,

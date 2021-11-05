@@ -160,4 +160,5 @@ dev/
 .DS_Store
 */.DS_Store
 
+./model_zoo/net_frameworks/
 

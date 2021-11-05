@@ -10,6 +10,7 @@ from .NN_baseline import NN_baseline
 
 from model_zoo.losses import explogTVSK_loss_v3_binary as exp_v3b
 from model_zoo.net_frameworks.pruning import segnet_VHA_light
+from model_zoo.net_frameworks.pruning.VHA_Unet_light_pruning_dev import segnet_VHA_light_dev
 
 from pruning_utils.utils import P_node, save_graph, load_graph
 from pruning_utils.rebuild_ops import rebuild_tf_graph
@@ -86,6 +87,9 @@ class VHA_pruning_model(Segment_Base):
     def seg_net(self, x, is_training=False):
         if self.segnet == 'default':
             return segnet_VHA_light(x, base_channel=self.seg_ch, is_training=is_training,
+                                    reuse=tf.AUTO_REUSE, upsample_type='resize')
+        elif self.segnet == 'dev':
+            return segnet_VHA_light_dev(x, base_channel=self.seg_ch, is_training=is_training,
                                     reuse=tf.AUTO_REUSE, upsample_type='resize')
         else:
             raise NameError('Un-known segnet name')
@@ -175,13 +179,14 @@ class VHA_pruning_model(Segment_Base):
                 if 'gamma' in v.name:
                     sliming_loss += tf.nn.l2_loss(v)
 
-        total_loss = seg_loss+.1*vsl_loss+.1*hrt_loss+1e-5*sliming_loss
+        total_loss = seg_loss+.1*vsl_loss+.1*hrt_loss+1e-7*sliming_loss
 
         return {
             'total_loss': total_loss,
             'seg_loss': seg_loss,
             'vsl_loss': vsl_loss,
             'hrt_loss': hrt_loss,
+            'sliming_loss': sliming_loss,
         }
 
 if __name__ == '__main__':

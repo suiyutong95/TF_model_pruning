@@ -72,7 +72,6 @@ def conv_prune_wmean(pnode, prune_cfg, variables_dict):
 
     in_mask = pnode.input_mask
     scale = prune_cfg['scale']
-
     out_ch = variables_dict['conv3d/kernel:0'].shape[-1]
 
     # read variable
